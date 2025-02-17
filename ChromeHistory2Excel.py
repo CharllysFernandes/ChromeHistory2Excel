@@ -26,8 +26,20 @@ cursor.execute(query)
 rows = cursor.fetchall()
 df = pd.DataFrame(rows, columns=["Data e Horário", "URL"])
 
-# Salva os dados em um arquivo Excel
-df.to_excel("historico_chrome.xlsx", index=False)
+# Separa a data do horário em duas colunas
+df["Data"] = df["Data e Horário"].apply(lambda x: x.split(' ')[0])
+df["Horário"] = df["Data e Horário"].apply(lambda x: x.split(' ')[1])
+df = df.drop(columns=["Data e Horário"])
+
+# Salva os dados em um arquivo Excel com hiperlinks
+with pd.ExcelWriter("historico_chrome.xlsx", engine='xlsxwriter') as writer:
+    df[["Data", "Horário", "URL"]].to_excel(writer, index=False, sheet_name='Histórico')
+    workbook = writer.book
+    worksheet = writer.sheets['Histórico']
+    
+    # Adiciona hiperlinks
+    for row_num, url in enumerate(df["URL"], start=2):  # Excel rows are 1-indexed and header is in row 1
+        worksheet.write_url(f'C{row_num}', url, string=url)
 
 # Fecha a conexão e remove o backup
 conn.close()
